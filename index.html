@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Fuli AI: An Efficient Video Diffusion Model via Weak-to-Strong Distribution Matching">
+  <meta name="keywords" content="Step Distillation, Video Generation, Diffusion Models">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fuli AI: An Efficient Video Diffusion Model via Weak-to-Strong Distribution Matching</title>
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-PYVRSFMDRL');
+  </script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  
+  <!-- Favicon settings -->
+  <link rel="icon" type="image/x-icon" href="https://media.licdn.com/dms/image/v2/D560BAQF0T33oodtNuQ/company-logo_200_200/company-logo_200_200/0/1719256398552?e=2147483647&v=beta&t=SInJv1CATW9LcbW5neQWz8-yMjce5eO-MLCdBZTiO0s">
+  <link rel="shortcut icon" type="image/x-icon" href="https://media.licdn.com/dms/image/v2/D560BAQF0T33oodtNuQ/company-logo_200_200/company-logo_200_200/0/1719256398552?e=2147483647&v=beta&t=SInJv1CATW9LcbW5neQWz8-yMjce5eO-MLCdBZTiO0s">
+  <link rel="apple-touch-icon" href="https://media.licdn.com/dms/image/v2/D560BAQF0T33oodtNuQ/company-logo_200_200/company-logo_200_200/0/1719256398552?e=2147483647&v=beta&t=SInJv1CATW9LcbW5neQWz8-yMjce5eO-MLCdBZTiO0s">
+  <meta name="msapplication-TileImage" content="https://media.licdn.com/dms/image/v2/D560BAQF0T33oodtNuQ/company-logo_200_200/company-logo_200_200/0/1719256398552?e=2147483647&v=beta&t=SInJv1CATW9LcbW5neQWz8-yMjce5eO-MLCdBZTiO0s">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script src="./static/js/index.js"></script>
+  <style>
+    /* Dark theme styles */
+    body {
+      background-color: #0a0a0a;
+      color: #ffffff;
+    }
+    .title, .subtitle, .content, .publication-title {
+      color: #ffffff !important;
+    }
+    .hero.is-light {
+      background-color: #1a1a1a !important;
+      color: #ffffff !important;
+    }
+    .section {
+      background-color: #0a0a0a;
+    }
+    .footer {
+      background-color: #1a1a1a;
+      color: #ffffff;
+    }
+    .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
+      color: #ffffff;
+    }
+    pre {
+      background-color: #1a1a1a;
+      color: #ffffff;
+    }
+    code {
+      background-color: #2a2a2a;
+      color: #ffffff;
+    }
+    .has-text-justified {
+      color: #ffffff;
+    }
+    .hero {
+      margin-top: 10rem;
+      background-color: #0a0a0a !important;
+    }
+    .hero-transparent {
+      position: relative;
+      z-index: 2;
+      margin-top: 25vh;
+      background-color: transparent !important;
+    }
+    .hero, .hero-body, .hero.is-small {
+      background-color: #0a0a0a !important;
+    }
+    html {
+      background-color: #0a0a0a !important;
+    }
+    .column-spacing {
+      margin: 0 2rem !important;
+    }
+    .video-description {
+      min-height: 4.5em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+    .prompt-wrap {
+      position: relative;
+    }
+
+    .prompt {
+      max-width: calc(100% - 20px);
+      position: absolute;
+      background: rgba(0,0,0,0.1);
+      color: rgba(255,255,255,0.9);
+      font-size: 12px;
+      backdrop-filter: blur(10px);
+      bottom: 10px;
+      left: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 10;
+      line-height: 1.4;
+      
+    }
+
+    .prompt-wrap:hover .prompt {
+      opacity: 1;
+      pointer-events: all;
+    }
+  </style>
+  <style>
+    .video-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 200vh;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .video-background video {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      min-width: 100%;
+      width: auto;
+      height: 100vh;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 2s ease-in-out;
+      filter: blur(3px) brightness(0.8);
+    }
+
+    .video-background video.active {
+      opacity: 0.15;
+    }
+
+    .video-background::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .hero-transparent {
+      position: relative;
+      z-index: 2;
+      margin-top: 0;
+      background-color: transparent !important;
+    }
+
+    .hero-transparent * {
+      position: relative;
+      z-index: 2;
+      background-color: transparent !important;
+    }
+
+    .hero-transparent .title,
+    .hero-transparent .subtitle,
+    .hero-transparent .publication-authors,
+    .hero-transparent .publication-links {
+      position: relative;
+      z-index: 2;
+      background-color: transparent !important;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 2;
+    }
+  </style>
+  <style>
+    .carousel {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+      font-size: 0; /* Remove any potential inline-block spacing */
+    }
+    
+    .carousel::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+
+    .prompt-wrap {
+      flex: 0 0 auto;
+      height: 180px;
+      position: relative;
+      font-size: 16px; /* Reset font size for content */
+      display: flex; /* Use flexbox to center the video */
+      justify-content: center; /* Center horizontally */
+      align-items: center; /* Center vertically */
+    }
+
+    .prompt-wrap video {
+      height: 100%;
+      width: auto;
+      object-fit: contain;
+      display: block; /* Remove any potential inline spacing */
+      margin: 0; /* Remove any margins */
+    }
+
+    .results-carousel {
+      padding: 0;
+      white-space: nowrap; /* Prevent wrapping */
+    }
+  </style>
+</head>
+<body>
+
+<div class="video-background" style="opacity: 1;">
+  <video id="bg-video-1" autoplay muted loop playsinline style="opacity: 1;">
+    <source src="./static/videos/background/0027.jpg.mp4" type="video/mp4">
+  </video>
+  <video id="bg-video-2" autoplay muted loop playsinline style="opacity: 1;">
+    <source src="./static/videos/background/0042.jpg.mp4" type="video/mp4">
+  </video>
+  <video id="bg-video-3" autoplay muted loop playsinline style="opacity: 1;">
+    <source src="./static/videos/background/0014.jpg.mp4" type="video/mp4">
+  </video>
+  <video id="bg-video-4" autoplay muted loop playsinline style="opacity: 1;">
+    <source src="./static/videos/background/0078.jpg.mp4" type="video/mp4">
+  </video>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const videos = document.querySelectorAll('.video-background video');
+    let currentVideoIndex = 0;
+    
+    // Function to preload videos
+    const preloadVideos = async () => {
+      for (const video of videos) {
+        try {
+          await video.play();
+          video.style.opacity = '0';
+        } catch (error) {
+          console.log("Video play failed:", error);
+        }
+      }
+    };
+
+    // Initialize first video
+    const showInitialVideo = () => {
+      videos[0].style.opacity = '0.6';
+    };
+
+    // Preload videos and show first one
+    preloadVideos().then(showInitialVideo);
+    
+    // Change video every 8 seconds with crossfade
+    setInterval(() => {
+      // Fade out current video
+      videos[currentVideoIndex].style.opacity = '0';
+      
+      // Update index
+      currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+      
+      // Fade in next video
+      videos[currentVideoIndex].style.opacity = '0.6';
+    }, 8000);
+
+    // Add scroll event listener to adjust video opacity
+    window.addEventListener('scroll', () => {
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const maxOpacity = 0.6;
+      const minOpacity = 0.00;
+      
+      // Calculate opacity based on scroll position
+      // Decrease opacity as user scrolls down
+      const opacity = Math.max(maxOpacity - (scrollPosition / windowHeight) * maxOpacity, minOpacity);
+      
+      // Apply opacity to current video
+      videos[currentVideoIndex].style.opacity = opacity.toString();
+    });
+  });
+</script>
+
+<section class="hero-transparent">
+  <div class="column has-text-centered" style="margin-top: 14rem;">
+    <h1 class="title is-1 publication-title mb-1" style="background: transparent !important; text-shadow: 0px 0px 15px rgba(255, 255, 255, 0.8); color: white;">Fuli AI</h1>
+    <h2 class="subtitle has-text-centered mt-1" style="background: transparent !important; color: white;">Fuli AI: An Efficient Video Diffusion Model via Weak-to-Strong Distribution Matching</h2>
+</section>
+
+
+
+<section class="section" style="margin-top: 10rem;">
+  <!-- <div class="flex flex-dynamic" style="display: flex; flex-wrap: wrap;"> -->
+  <div class="container is-max-desktop" style="display: flex; flex-wrap: wrap; width: 100%;">
+    <div class="section-title has-text-centered">
+      <h2 class="title is-3">Experimental Results (General Video Synthesis)</h2>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div style="display: flex; height: 33.33vh; justify-content: center; width: 100%; margin-bottom: 0;">
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_016_13_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_000_0_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_005_5_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 33.33vh; justify-content: center; width: 100%; margin-top: 0;">
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_034_31_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_028_25_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_027_24_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 33.33vh; justify-content: center; width: 100%;">
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_024_21_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_022_19_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_017_14_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 33.33vh; justify-content: center; width: 100%;">
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_012_9_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_064_56_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_054_46_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 33.33vh; justify-content: center; width: 100%;">
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_053_45_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_046_38_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+      <div class="prompt-wrap full-screen-wrap" style="position: relative; flex: 1;">
+          <div class="loading-placeholder">
+              <div class="loading-text">Loading...</div>
+              <div class="loading-icon">☕</div>
+          </div>
+          <video autoplay playsinline muted loop onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';" src="fuli_ai2/processed_045_37_repeat-0.mp4" style="width: auto; height: 100%; object-fit: contain;"></video>
+          <div class="prompt"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+
+
+<section class="section" style="margin-top: 10rem;">
+  <div class="container is-max-desktop" style="width: 100%;">
+    <div class="section-title has-text-centered">
+      <h2 class="title is-3">Comparison between Fuli AI (13B), HunyuanVideo-I2V (13B) and WanX-I2V (14B)</h2>
+    </div>
+
+    <div class="spacer"></div>
+
+    <!-- 统一视频容器结构 -->
+    <div style="display: flex; height: 33.33vh; width: 100%; margin-bottom: 2rem;">
+      <div class="video-container" style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="loading-placeholder" style="position: absolute;">
+          <div class="loading-text">Loading...</div>
+          <div class="loading-icon">☕</div>
+        </div>
+        <video autoplay playsinline muted loop 
+               style="width: 100%; height: 100%; object-fit: contain;"
+               onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';"
+               src="./static/videos/comparison/0001.mp4">
+        </video>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 50vh; width: 100%; margin-bottom: 2rem;">
+      <div class="video-container" style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="loading-placeholder" style="position: absolute;">
+          <div class="loading-text">Loading...</div>
+          <div class="loading-icon">☕</div>
+        </div>
+        <video autoplay playsinline muted loop 
+               style="width: 100%; height: 100%; object-fit: contain;"
+               onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';"
+               src="./static/videos/comparison/0002.mp4">
+        </video>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 33.33vh; width: 100%; margin-bottom: 2rem;">
+      <div class="video-container" style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="loading-placeholder" style="position: absolute;">
+          <div class="loading-text">Loading...</div>
+          <div class="loading-icon">☕</div>
+        </div>
+        <video autoplay playsinline muted loop 
+               style="width: 100%; height: 100%; object-fit: contain;"
+               onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';"
+               src="./static/videos/comparison/0003.mp4">
+        </video>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 33.33vh; width: 100%; margin-bottom: 2rem;">
+      <div class="video-container" style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="loading-placeholder" style="position: absolute;">
+          <div class="loading-text">Loading...</div>
+          <div class="loading-icon">☕</div>
+        </div>
+        <video autoplay playsinline muted loop 
+               style="width: 100%; height: 100%; object-fit: contain;"
+               onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';"
+               src="./static/videos/comparison/0004.mp4">
+        </video>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 50vh; width: 100%; margin-bottom: 2rem;">
+      <div class="video-container" style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="loading-placeholder" style="position: absolute;">
+          <div class="loading-text">Loading...</div>
+          <div class="loading-icon">☕</div>
+        </div>
+        <video autoplay playsinline muted loop 
+               style="width: 100%; height: 100%; object-fit: contain;"
+               onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';"
+               src="./static/videos/comparison/0005.mp4">
+        </video>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 50vh; width: 100%; margin-bottom: 2rem;">
+      <div class="video-container" style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="loading-placeholder" style="position: absolute;">
+          <div class="loading-text">Loading...</div>
+          <div class="loading-icon">☕</div>
+        </div>
+        <video autoplay playsinline muted loop 
+               style="width: 100%; height: 100%; object-fit: contain;"
+               onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';"
+               src="./static/videos/comparison/0006.mp4">
+        </video>
+      </div>
+    </div>
+
+    <div style="display: flex; height: 50vh; width: 100%; margin-bottom: 2rem;">
+      <div class="video-container" style="flex: 1; position: relative; display: flex; justify-content: center; align-items: center;">
+        <div class="loading-placeholder" style="position: absolute;">
+          <div class="loading-text">Loading...</div>
+          <div class="loading-icon">☕</div>
+        </div>
+        <video autoplay playsinline muted loop 
+               style="width: 100%; height: 100%; object-fit: contain;"
+               onloadeddata="this.style.display='block'; this.previousElementSibling.style.display='none';"
+               src="./static/videos/comparison/0007.mp4">
+        </video>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+</body>
+</html>
